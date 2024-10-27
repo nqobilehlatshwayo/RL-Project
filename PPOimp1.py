@@ -13,6 +13,7 @@ from lightsim2grid import LightSimBackend
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
+import matplotlib.pyplot as plt
 
 class Gym2OpEnv(gym.Env):
     def __init__(self):
@@ -48,7 +49,7 @@ class Gym2OpEnv(gym.Env):
     def setup_observations(self):
         obs_space = self._gym_env.observation_space
         self.obs_keys = list([
-            'topo_vect', 'rho',
+            'topo_vect', 'rho', 
             'actual_dispatch'
         ])
 
@@ -83,29 +84,29 @@ class Gym2OpEnv(gym.Env):
 
         low = []
         high = []
-        for space in self.act_spaces:
-            if isinstance(space, spaces.Discrete):
-                low.append(0)
-                high.append(space.n - 1)
-            elif isinstance(space, spaces.Box):
-                low.extend(space.low)
+        for key, space in zip(self.act_keys, self.act_spaces):
+            if key == "set_bus":
+                low.extend([x + 1 for x in space.low])
                 high.extend(space.high)
-            elif isinstance(space, spaces.MultiBinary):
+            elif key == "change_line_status":
                 low.extend([0] * space.n)
                 high.extend([1] * space.n)
             else:
-                raise ValueError(f"Unsupported action space: {type(space)}")
+                low.extend(space.low)
+                high.extend(space.high)
 
         self.action_space = spaces.Box(low=np.array(low, dtype=np.float32),
                                        high=np.array(high, dtype=np.float32))
 
     def reset(self, seed=None):
         obs, info = self._gym_env.reset(seed=seed)
+        obs = self.obs_limits(obs)
         return self._flatten_obs(obs), info
 
     def step(self, action):
         mixed_action = self._continuous_to_mixed(action)
         obs, reward, terminated, truncated, info = self._gym_env.step(mixed_action)
+        obs = self.obs_limits(obs)
         return self._flatten_obs(obs), reward, terminated, truncated, info
 
     def _flatten_obs(self, obs):
@@ -124,32 +125,72 @@ class Gym2OpEnv(gym.Env):
         mixed_action = {}
         idx = 0
         for key, space in zip(self.act_keys, self.act_spaces):
-            if isinstance(space, spaces.Discrete):
-                mixed_action[key] = np.argmax(action[idx:idx+space.n])
-                idx += space.n
-            elif isinstance(space, spaces.Box):
+            if key == "set_bus":
                 n = np.prod(space.shape)
-                if key == "set_bus" or key == "set_line_status":
-                    mixed_action[key] = np.round( action[idx:idx+n].reshape(space.shape))
-                else:
-                    mixed_action[key] = action[idx:idx+n].reshape(space.shape)
+                mixed_action[key] = np.round( action[idx:idx+n].reshape(space.shape))
                 idx += n
-            elif isinstance(space, spaces.MultiBinary):
+            elif key == "change_line_status":
                 np_arr = np.array(action[idx:idx+space.n])
                 largest_indices = np.argpartition(np_arr, -4)[-4:]
                 result = np.zeros_like(np_arr, dtype=int)
-
                 for i in largest_indices:
                     if np_arr[i] >= 0.5:
                         result[i] = 1
                 mixed_action[key] = result.tolist()
                 idx += space.n
+            elif key == "redispatch":
+                n = np.prod(space.shape)
+                mixed_action[key] = []
+                aa = 0
+                for a in action[idx:idx+n].reshape(space.shape):
+                    a = max(a, -self.limits['gen_margin_down'][aa])
+                    a = min(a, self.limits['gen_margin_up'][aa])
+                    mixed_action[key].append(a)
+                    aa += 1
+                idx += n
+            elif key == "curtail":
+                n = np.prod(space.shape)
+                mixed_action[key] = action[idx:idx+n].reshape(space.shape)
+                idx += n
         return mixed_action
+    
+    def obs_limits(self, all_obs):
+        obs = {}
+        self.limits = all_obs
+        for key, value in all_obs.items():
+            if key in self.obs_keys:
+                obs[key] = value
+        return obs
 
 def train_ppo(env, total_timesteps=10000):
     model = PPO("MlpPolicy", env, verbose=1)
     model.learn(total_timesteps=total_timesteps)
     return model
+
+def evaluate(env, model):
+    # Visualize steps with the trained agent using the unwrapped environment
+    max_steps = 100
+    curr_step = 0
+    curr_return = 0
+    is_done = False
+
+    rewards = []
+
+    obs, info = env.reset()  # Use the unwrapped environment for visualization
+
+    while not is_done and curr_step < max_steps:
+        action, _states = model.predict(obs[np.newaxis, :], deterministic=True)
+        obs, reward, terminated, truncated, info = env.step(action[0])  # Use the unwrapped environment
+
+        curr_step += 1
+        curr_return += reward
+        rewards.append(reward)
+        is_done = terminated or truncated
+
+    print(f"return = {curr_return}")
+    print(f"total steps = {curr_step}")
+    print(f"average return = {curr_return/curr_step} \n")
+    return curr_return, curr_step, rewards
 
 def main():
     env = Gym2OpEnv()
@@ -170,47 +211,34 @@ def main():
     vec_env = DummyVecEnv([lambda: env])
 
     # Train the agent
-    model = train_ppo(vec_env, total_timesteps=10000)
+    model = train_ppo(vec_env, total_timesteps=50000)
     print("PPO training completed.\n")
 
-    # Visualize steps with the trained agent using the unwrapped environment
-    max_steps = 100
-    curr_step = 0
-    curr_return = 0
-    is_done = False
-
-    obs, info = env.reset()  # Use the unwrapped environment for visualization
-    print(f"step = {curr_step} (reset):")
-    print(f"\t obs = {obs}")
-    print(f"\t info = {info}\n\n")
-
-    while not is_done and curr_step < max_steps:
-        action, _states = model.predict(obs[np.newaxis, :], deterministic=True)
-        obs, reward, terminated, truncated, info = env.step(action[0])  # Use the unwrapped environment
-
-        curr_step += 1
-        curr_return += reward
-        is_done = terminated or truncated
-
-        print(f"step = {curr_step}: ")
-        print(f"\t obs = {obs}")
-        print(f"\t reward = {reward}")
-        print(f"\t terminated = {terminated}")
-        print(f"\t truncated = {truncated}")
-        print(f"\t info = {info}")
-
-        is_action_valid = not (info.get("is_illegal", False) or info.get("is_ambiguous", False))
-        print(f"\t is action valid = {is_action_valid}")
-        if not is_action_valid:
-            print(f"\t\t reason = {info.get('exception', 'Unknown')}")
-        print("\n")
-
+    curr_return, curr_step, total = 0, 0, 100
+    ave_rewards = [0]*total
+    for ep in range(total):
+        print(f"episode = {ep}")
+        r, s, rewards = evaluate(env, model)
+        curr_return += r
+        curr_step += s
+        for i in range(len(rewards)):
+            ave_rewards[i] += rewards[i]/total
+    
     print("###########")
     print("# SUMMARY #")
     print("###########")
-    print(f"return = {curr_return}")
-    print(f"total steps = {curr_step}")
+    print(f"return = {curr_return/total}")
+    print(f"total steps = {curr_step/total}")
+    print(f"return per step = {curr_return/curr_step}")
     print("###########")
 
+    plt.plot(ave_rewards)
+    plt.xlabel('Step')
+    plt.ylabel('Average Rewards')
+    plt.title('Training Rewards Over Time')
+    plt.show()
+    plt.savefig('PPO_improvement_1.png')
+
+    
 if __name__ == "__main__":
     main()
