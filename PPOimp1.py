@@ -164,7 +164,7 @@ class Gym2OpEnv(gym.Env):
 
 def train_ppo(env, total_timesteps=10000):
     model = PPO("MlpPolicy", env, verbose=1)
-    model.learn(total_timesteps=total_timesteps)
+    # model.learn(total_timesteps=total_timesteps)
     return model
 
 def evaluate(env, model):
@@ -187,10 +187,14 @@ def evaluate(env, model):
         rewards.append(reward)
         is_done = terminated or truncated
 
+    print("###########")
+    print("# SUMMARY #")
+    print("###########")
     print(f"return = {curr_return}")
     print(f"total steps = {curr_step}")
-    print(f"average return = {curr_return/curr_step} \n")
-    return curr_return, curr_step, rewards
+    print(f"return per step = {curr_return/curr_step}")
+    print("###########\n")
+    return rewards
 
 def main():
     env = Gym2OpEnv()
@@ -211,31 +215,21 @@ def main():
     vec_env = DummyVecEnv([lambda: env])
 
     # Train the agent
-    model = train_ppo(vec_env, total_timesteps=50000)
+    model = train_ppo(vec_env, total_timesteps=10000)
     print("PPO training completed.\n")
 
-    curr_return, curr_step, total = 0, 0, 100
-    ave_rewards = [0]*total
+    total = 5
     for ep in range(total):
         print(f"episode = {ep}")
-        r, s, rewards = evaluate(env, model)
-        curr_return += r
-        curr_step += s
-        for i in range(len(rewards)):
-            ave_rewards[i] += rewards[i]/total
+        model.learn(total_timesteps=10000)
+        rewards = evaluate(env, model)
+        plt.plot(rewards, label=f"Episode {ep}")
     
-    print("###########")
-    print("# SUMMARY #")
-    print("###########")
-    print(f"return = {curr_return/total}")
-    print(f"total steps = {curr_step/total}")
-    print(f"return per step = {curr_return/curr_step}")
-    print("###########")
-
-    plt.plot(ave_rewards)
-    plt.xlabel('Step')
-    plt.ylabel('Average Rewards')
-    plt.title('Training Rewards Over Time')
+    plt.xlabel('STep')
+    plt.ylabel('Rewards')
+    plt.title('Rewards Over Time Per Episode')
+    plt.grid(True)
+    plt.legend()
     plt.show()
     plt.savefig('PPO_improvement_1.png')
 
