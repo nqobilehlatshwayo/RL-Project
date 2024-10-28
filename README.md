@@ -1,4 +1,4 @@
-﻿# RL-Project
+﻿# DQN Implementation
 
 # Install 
 
