@@ -16,24 +16,9 @@ This project implements and compares two reinforcement learning approaches for p
 
 ## Setup and Installation
 
-1. Clone the repository:
+1. Install dependencies:
 ```bash
-git clone [repository-url]
-cd power-grid-control
-```
-
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-3. Switch to desired algorithm branch:
-```bash
-# For DQN implementation
-git checkout dqn
-
-# For PPO implementation
-git checkout ppo
+pip install gymnasium grid2op lightsim2grid stable_baselines3 wandb sb3-contrib
 ```
 
 ## Environment
@@ -44,6 +29,15 @@ The project uses the Grid2Op environment ("l2rpn_case14_sandbox") with the follo
 - Real-world operational constraints
 - N-1 criterion compliance requirements
 
+
+## Usage
+Each algorithm branch contains the code for running the implementation. Generally:
+
+1. Navigate to the desired algorithm folder
+2. Run the corresponding script or improvement, for example:
+```bash
+   python Baseline.py
+
 ## Results Summary
 Performance metrics comparison between final versions of both algorithms:
 
@@ -53,15 +47,4 @@ Performance metrics comparison between final versions of both algorithms:
 | Final Loss | 0.13 | 0.056 |
 | Training Time | 49m 44s | 49m 33s |
 
-## Usage
-Each algorithm branch contains specific instructions for running the implementation. Generally:
-
-1. Navigate to the desired branch
-2. Run the corresponding script or improvement:
-
-## License
-[Specify your license here]
-
-## Acknowledgments
-- Grid2Op platform developers
-- University of the Witwatersrand, School of Computer Science and Applied Mathematics
+```
