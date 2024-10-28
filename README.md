@@ -1,4 +1,4 @@
 ﻿# PPO Implementation
 
 # Install 
-`!pip install sb3-contrib`
+`pip install sb3-contrib`
