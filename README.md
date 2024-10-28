@@ -48,5 +48,4 @@ Performance metrics comparison between final versions of both algorithms:
 | Final Loss | 0.13 | 0.056 |
 | Training Time | 49m 44s | 49m 33s |
 
-```
  
