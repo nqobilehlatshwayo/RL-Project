@@ -44,25 +44,6 @@ The project uses the Grid2Op environment ("l2rpn_case14_sandbox") with the follo
 - Real-world operational constraints
 - N-1 criterion compliance requirements
 
-## Algorithm Configurations
-
-### DQN Parameters
-- Learning Rate: 0.0001
-- Buffer Size: 1,000,000
-- Gamma: 0.99
-- Target Update Interval: 10,000
-- Initial ε: 1.0
-- Final ε: 0.05
-- Exploration Fraction: 0.1
-
-### PPO Parameters
-- Neural Network: [64, 64] hidden layers
-- Activation: ReLU
-- Learning Rate: 3e-4
-- Clip Range: 0.2
-- Value Function Coefficient: 0.5
-- Entropy Coefficient: 0.01
-
 ## Results Summary
 Performance metrics comparison between final versions of both algorithms:
 
