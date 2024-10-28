@@ -14,30 +14,6 @@ This project implements and compares two reinforcement learning approaches for p
 - Developing systematic improvements to both algorithms
 - Analyzing the effectiveness of different approaches in maintaining grid stability
 
-## Repository Structure
-The project is organized into different branches for each algorithm implementation:
-
-```
-main/
-├── README.md
-├── requirements.txt
-└── src/
-    ├── utils/
-    └── environment/
-```
-
-### Branches
-- `main`: Core project structure and documentation
-- `dqn`: Deep Q-Network implementation with improvements
-  - Baseline implementation
-  - Optimized state-action space
-  - Prioritized experience replay
-  - Momentum integration
-- `ppo`: Proximal Policy Optimization implementation with improvements
-  - Baseline implementation
-  - Optimized state-action representation
-  - Recurrent architecture
-
 ## Setup and Installation
 
 1. Clone the repository:
@@ -101,13 +77,6 @@ Each algorithm branch contains specific instructions for running the implementat
 
 1. Navigate to the desired branch
 2. Run the corresponding script or improvement:
-
-## Contributing
-1. Fork the repository
-2. Create a new branch for your feature
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
 
 ## License
 [Specify your license here]
