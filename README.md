@@ -37,6 +37,7 @@ Each algorithm branch contains the code for running the implementation. Generall
 2. Run the corresponding script or improvement, for example:
 ```bash
    python Baseline.py
+```
 
 ## Results Summary
 Performance metrics comparison between final versions of both algorithms:
