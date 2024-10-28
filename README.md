@@ -19,6 +19,7 @@ This project implements and compares two reinforcement learning approaches for p
 1. Install dependencies:
 ```bash
 pip install gymnasium grid2op lightsim2grid stable_baselines3 wandb sb3-contrib
+pip install stable-baselines3@git+https://github.com/AlexPasqua/stable-baselines3.git@prioritized-experience-replay
 ```
 
 ## Environment
